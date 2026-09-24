@@ -17,6 +17,7 @@ async function main() {
       { name: "SHIPPED" },
       { name: "DELIVERED" },
       { name: "CANCELLED" },
+      { name: "PAYMENT_REJECTED" },
     ],
     skipDuplicates: true,
   });

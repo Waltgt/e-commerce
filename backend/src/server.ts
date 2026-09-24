@@ -6,6 +6,8 @@ import { errorHandler } from "./middlewares/errorHandler";
 import { fail } from "./lib/apiResponse";
 import authRoutes from "./modules/auth/auth.routes";
 import productRoutes from "./modules/products/product.routes";
+import cartRoutes from "./modules/cart/cart.routes";
+import orderRoutes from "./modules/orders/order.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +24,8 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 
 // 404 para rutas no encontradas
 app.use((req, res) => {
