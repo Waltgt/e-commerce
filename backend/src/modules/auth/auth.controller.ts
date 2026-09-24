@@ -3,6 +3,7 @@ import { registerSchema, loginSchema } from "./auth.schema";
 import { registerUser, loginUser, refreshAccessToken, logoutUser } from "./auth.service";
 import { ok } from "../../lib/apiResponse";
 import { AppError } from "../../lib/AppError";
+import { loginWithGoogle } from "./google.service";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 const isProduction = process.env.NODE_ENV === "production";
@@ -47,4 +48,14 @@ export async function logout(req: Request, res: Response) {
   }
   res.clearCookie(REFRESH_COOKIE_NAME, { path: "/api/auth" });
   res.json(ok({ message: "Sesión cerrada" }));
+}
+
+export async function googleLogin(req: Request, res: Response) {
+  const { idToken } = req.body;
+  if (!idToken || typeof idToken !== "string") {
+    throw new AppError(400, "MISSING_ID_TOKEN", "Falta el token de Google");
+  }
+  const { accessToken, refreshTokenPlain } = await loginWithGoogle(idToken);
+  setRefreshCookie(res, refreshTokenPlain);
+  res.json(ok({ accessToken }));
 }
