@@ -19,19 +19,25 @@ export async function requireAuth(
 
   const token = header.slice("Bearer ".length);
 
+  let payload;
   try {
-    const payload = verifyAccessToken(token);
+    payload = verifyAccessToken(token);
+  } catch {
+    return next(new AppError(401, "INVALID_TOKEN", "Token inválido o expirado"));
+  }
 
+  try {
     const isBlocked = await redis.get(`block:user:${payload.userId}`);
     if (isBlocked) {
       return next(new AppError(403, "USER_BLOCKED", "Tu cuenta ha sido bloqueada"));
     }
-
-    req.user = payload;
-    next();
-  } catch {
-    next(new AppError(401, "INVALID_TOKEN", "Token inválido o expirado"));
+  } catch (err) {
+    console.error("Error consultando Redis en requireAuth:", err);
+    return next(new AppError(503, "SERVICE_UNAVAILABLE", "Servicio no disponible temporalmente"));
   }
+
+  req.user = payload;
+  next();
 }
 
 export function requireRole(...allowedRoles: string[]) {

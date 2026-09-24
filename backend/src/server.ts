@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/errorHandler";
 import { fail } from "./lib/apiResponse";
 import authRoutes from "./modules/auth/auth.routes";
+import productRoutes from "./modules/products/product.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,21 +15,20 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Health check: usado para verificar manualmente qué instancia respondió,
-// útil para comprobar que Nginx está balanceando de verdad
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok", instance: INSTANCE_NAME });
 });
 
-// Rutas de la API se agregarán aquí conforme construyamos cada módulo
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
 
 // 404 para rutas no encontradas
 app.use((req, res) => {
   res.status(404).json(fail("NOT_FOUND", "Recurso no encontrado"));
 });
 
-// Manejador de errores centralizado: SIEMPRE al final, después de todas las rutas
+// Manejador de errores centralizado
 app.use(errorHandler);
 
 app.listen(PORT, () => {
