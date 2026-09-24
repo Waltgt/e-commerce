@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/errorHandler";
 import { fail } from "./lib/apiResponse";
+import authRoutes from "./modules/auth/auth.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +21,7 @@ app.get("/health", (req, res) => {
 });
 
 // Rutas de la API se agregarán aquí conforme construyamos cada módulo
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
 // 404 para rutas no encontradas
 app.use((req, res) => {
