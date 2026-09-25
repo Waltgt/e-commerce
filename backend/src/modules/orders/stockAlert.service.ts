@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { sendMail } from "../../lib/mailer";
 
 const DEFAULT_THRESHOLD = 5;
 const ALERT_COOLDOWN_HOURS = 24; 
@@ -23,11 +24,10 @@ export async function checkLowStockAndNotify(productId: number) {
     select: { email: true },
   });
 
-
-  console.log(
-    `[ALERTA STOCK BAJO] Producto "${product.name}" (id ${productId}) con stock ${product.stock}. ` +
-    `Destinatarios: ${admins.map((a) => a.email).join(", ") || "ningún admin registrado"}`
-  );
+  const html = `
+    <h2>Alerta de stock bajo</h2>
+    <p>El producto "<strong>${product.name}</strong>" (ID ${product.id}) tiene un stock de ${product.stock} unidades, por debajo del umbral configurado.</p>
+  `;
 
   await prisma.stockAlertLog.create({ data: { productId } });
 }

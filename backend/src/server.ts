@@ -8,6 +8,8 @@ import authRoutes from "./modules/auth/auth.routes";
 import productRoutes from "./modules/products/product.routes";
 import cartRoutes from "./modules/cart/cart.routes";
 import orderRoutes from "./modules/orders/order.routes";
+import userRoutes from "./modules/users/user.routes";
+import reviewRoutes, { adminReviewRouter } from "./modules/reviews/review.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +28,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/admin/users", userRoutes);
+app.use("/api/products/:id/reviews", reviewRoutes);
+app.use("/api/admin/reviews", adminReviewRouter);
 
 // 404 para rutas no encontradas
 app.use((req, res) => {

@@ -3,8 +3,15 @@ import { AppError } from "../../lib/AppError";
 import { processDummyPayment } from "./payment.service";
 import { checkLowStockAndNotify } from "./stockAlert.service";
 import { CheckoutInput } from "./order.schema";
+import { sendOrderConfirmationEmail } from "./orderEmail.service";
 
 export async function checkout(userId: number, input: CheckoutInput) {
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError(404, "USER_NOT_FOUND", "Usuario no encontrado");
+  }
+
   const cart = await prisma.cart.findUnique({ where: { userId } });
   if (!cart) {
     throw new AppError(400, "EMPTY_CART", "El carrito está vacío");
@@ -39,7 +46,6 @@ export async function checkout(userId: number, input: CheckoutInput) {
     throw new AppError(500, "STATUS_NOT_SEEDED", "El estado PENDING no existe en el sistema");
   }
 
-  // 1. Crear el pedido en estado PENDING, con snapshot del precio actual
   const order = await prisma.order.create({
     data: {
       userId,
@@ -55,7 +61,7 @@ export async function checkout(userId: number, input: CheckoutInput) {
     },
   });
 
-  // 2. Procesar el pago dummy 
+  // Procesar el pago dummy 
   const paymentResult = processDummyPayment(input.paymentMethod, input.cardNumber);
 
   const methodRow = await prisma.paymentMethod.findUnique({ where: { name: input.paymentMethod } });
@@ -82,11 +88,9 @@ export async function checkout(userId: number, input: CheckoutInput) {
     if (rejectedStatus) {
       await prisma.order.update({ where: { id: order.id }, data: { statusId: rejectedStatus.id } });
     }
-    // El carrito NO se vacía: el cliente puede reintentar el pago sin rearmar el carrito
     return { orderId: order.id, status: "PAYMENT_REJECTED", total };
   }
 
-  // 3. Pago aprobado: descuenta stock, cambia estado, vacía carrito (transacción atómica)
   const paidStatus = await prisma.orderStatus.findUnique({ where: { name: "PAID" } });
   if (!paidStatus) {
     throw new AppError(500, "STATUS_NOT_SEEDED", "El estado PAID no existe en el sistema");
@@ -103,10 +107,22 @@ export async function checkout(userId: number, input: CheckoutInput) {
     prisma.cartItem.deleteMany({ where: { cartId: cart.id } }),
   ]);
 
-  // 4. Verificación de stock bajo
+  // Verificación de stock bajo
   for (const item of items) {
     await checkLowStockAndNotify(item.productId);
   }
+
+  await sendOrderConfirmationEmail({
+    email: user.email,
+    name: user.name,
+    orderId: order.id,
+    total,
+    items: items.map((i) => ({
+      productName: i.product.name,
+      quantity: i.quantity,
+      unitPrice: Number(i.product.price),
+    })),
+  });
 
   return { orderId: order.id, status: "PAID", total };
 }
