@@ -6,16 +6,19 @@ import { CreateProductInput, UpdateProductInput, ListProductsQuery } from "./pro
 export async function listProducts(query: ListProductsQuery) {
   const where: Prisma.ProductWhereInput = {
     isActive: true,
+    ...(query.search && {
+      name: { contains: query.search },
+    }),
     ...(query.categoryId && {
       categories: { some: { categoryId: query.categoryId } },
     }),
     ...(query.minPrice !== undefined || query.maxPrice !== undefined
       ? {
-          price: {
-            ...(query.minPrice !== undefined && { gte: query.minPrice }),
-            ...(query.maxPrice !== undefined && { lte: query.maxPrice }),
-          },
-        }
+        price: {
+          ...(query.minPrice !== undefined && { gte: query.minPrice }),
+          ...(query.maxPrice !== undefined && { lte: query.maxPrice }),
+        },
+      }
       : {}),
   };
 
@@ -23,10 +26,10 @@ export async function listProducts(query: ListProductsQuery) {
     query.sort === "popularity"
       ? { orderItems: { _count: "desc" } }
       : query.sort === "price_asc"
-      ? { price: "asc" }
-      : query.sort === "price_desc"
-      ? { price: "desc" }
-      : { createdAt: "desc" };
+        ? { price: "asc" }
+        : query.sort === "price_desc"
+          ? { price: "desc" }
+          : { createdAt: "desc" };
 
   const [items, total] = await Promise.all([
     prisma.product.findMany({
