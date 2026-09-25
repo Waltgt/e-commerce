@@ -4,6 +4,8 @@ import { registerUser, loginUser, refreshAccessToken, logoutUser } from "./auth.
 import { ok } from "../../lib/apiResponse";
 import { AppError } from "../../lib/AppError";
 import { loginWithGoogle } from "./google.service";
+import { requestResetSchema, confirmResetSchema } from "./passwordReset.schema";
+import { requestPasswordReset, confirmPasswordReset } from "./passwordReset.service";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 const isProduction = process.env.NODE_ENV === "production";
@@ -58,4 +60,16 @@ export async function googleLogin(req: Request, res: Response) {
   const { accessToken, refreshTokenPlain } = await loginWithGoogle(idToken);
   setRefreshCookie(res, refreshTokenPlain);
   res.json(ok({ accessToken }));
+}
+
+export async function requestReset(req: Request, res: Response) {
+  const input = requestResetSchema.parse(req.body);
+  await requestPasswordReset(input.email);
+  res.json(ok({ message: "Si el correo existe, se enviará un enlace de recuperación" }));
+}
+
+export async function confirmReset(req: Request, res: Response) {
+  const input = confirmResetSchema.parse(req.body);
+  await confirmPasswordReset(input.token, input.newPassword);
+  res.json(ok({ message: "Contraseña actualizada correctamente" }));
 }
