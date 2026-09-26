@@ -4,51 +4,24 @@ on:
   push:
     branches: [main]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-backend
-
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - id: meta
-        run: echo "tag=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
   deploy:
-    needs: build-and-push
     runs-on: self-hosted
     steps:
-      - name: Pull and restart on server-api (api1 + nginx)
+      - name: Actualizar codigo en server-api
         run: |
-          cd ~/sistema-ecommerce/infra
-          docker compose -f docker-compose.server-api.yml pull
-          docker compose -f docker-compose.server-api.yml up -d
+          cd ~/e-commerce
+          git pull origin main
+          cd backend
+          npm ci
+          npx prisma generate
+          npm run build
 
-      - name: Pull and restart on server-api2 (api2)
+      - name: Reiniciar api1 en server-api
         run: |
-          ssh -o StrictHostKeyChecking=no walter-upana@10.0.2.9 \
-            "cd ~/sistema-ecommerce/infra && docker compose -f docker-compose.server-api2.yml pull && docker compose -f docker-compose.server-api2.yml up -d"
+          cd ~/e-commerce/backend
+          pm2 reload api-backend --update-env
+
+      - name: Actualizar codigo en server-api2
+        run: |
+          ssh 10.0.2.9 "cd ~/e-commerce/backend && git pull origin main && npm ci && npx prisma generate && npm run build && pm2 reload api-backend --update-env"
