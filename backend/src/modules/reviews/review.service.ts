@@ -49,3 +49,34 @@ export async function deleteReview(id: number) {
   }
   await prisma.review.delete({ where: { id } });
 }
+
+export async function listAllReviewsForAdmin(page: number, pageSize: number) {
+  const [items, total] = await Promise.all([
+    prisma.review.findMany({
+      include: {
+        user: { select: { name: true, email: true } },
+        product: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.review.count(),
+  ]);
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function unhideReview(id: number) {
+  const review = await prisma.review.findUnique({ where: { id } });
+  if (!review) {
+    throw new AppError(404, "REVIEW_NOT_FOUND", "Reseña no encontrada");
+  }
+  await prisma.review.update({ where: { id }, data: { isVisible: true } });
+}

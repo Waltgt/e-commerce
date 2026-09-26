@@ -6,6 +6,8 @@ import {
   getReviewsHandler,
   hideReviewHandler,
   deleteReviewHandler,
+  getAllReviewsHandler, 
+  unhideReviewHandler
 } from "./review.controller";
 
 const router = Router({ mergeParams: true });
@@ -17,5 +19,7 @@ export default router;
 
 export const adminReviewRouter = Router();
 adminReviewRouter.use(requireAuth, requireRole("ADMIN"));
+adminReviewRouter.get("/", asyncHandler(getAllReviewsHandler));
 adminReviewRouter.patch("/:id/hide", asyncHandler(hideReviewHandler));
+adminReviewRouter.patch("/:id/unhide", asyncHandler(unhideReviewHandler));
 adminReviewRouter.delete("/:id", asyncHandler(deleteReviewHandler));

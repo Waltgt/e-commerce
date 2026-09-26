@@ -1,6 +1,6 @@
 import { Response } from "express";
-import { createReviewSchema } from "./review.schema";
-import { createReview, listReviewsForProduct, hideReview, deleteReview } from "./review.service";
+import { createReviewSchema, listReviewsQuerySchema } from "./review.schema";
+import { createReview, listReviewsForProduct, hideReview, deleteReview, listAllReviewsForAdmin, unhideReview } from "./review.service";
 import { ok } from "../../lib/apiResponse";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware";
 
@@ -27,4 +27,16 @@ export async function deleteReviewHandler(req: AuthenticatedRequest, res: Respon
   const id = Number(req.params.id);
   await deleteReview(id);
   res.json(ok({ message: "Reseña eliminada" }));
+}
+
+export async function getAllReviewsHandler(req: Request, res: Response) {
+  const query = listReviewsQuerySchema.parse(req.query);
+  const result = await listAllReviewsForAdmin(query.page, query.pageSize);
+  res.json(ok(result));
+}
+
+export async function unhideReviewHandler(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  await unhideReview(id);
+  res.json(ok({ message: "Reseña restaurada" }));
 }
