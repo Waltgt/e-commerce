@@ -29,6 +29,16 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: "/admin/products/new",
+    component: () => import("../views/admin/AdminProductFormView.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: "/admin/products/:id/edit",
+    component: () => import("../views/admin/AdminProductFormView.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: "/admin/users",
     component: () => import("../views/admin/AdminUsersView.vue"),
     meta: { requiresAuth: true, requiresAdmin: true },

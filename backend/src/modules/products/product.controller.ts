@@ -13,13 +13,18 @@ import {
   addProductImages,
   getProductImage,
   deleteProductImage,
+  reactivateProduct,
 } from "./product.service";
 import { listCategories, createCategory } from "./category.service";
 import { ok } from "../../lib/apiResponse";
 import { AppError } from "../../lib/AppError";
+import { AuthenticatedRequest } from "../../middlewares/auth.middleware";
 
-export async function getProducts(req: Request, res: Response) {
+export async function getProducts(req: AuthenticatedRequest, res: Response) {
   const query = listProductsQuerySchema.parse(req.query);
+  if (query.includeInactive && req.user?.roleName !== "ADMIN") {
+    query.includeInactive = false;
+  }
   const result = await listProducts(query);
   res.json(ok(result));
 }
@@ -87,4 +92,10 @@ export async function postCategory(req: Request, res: Response) {
   }
   const category = await createCategory(name);
   res.status(201).json(ok(category));
+}
+
+export async function reactivateProductHandler(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  await reactivateProduct(id);
+  res.json(ok({ message: "Producto reactivado" }));
 }

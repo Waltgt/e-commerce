@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../../middlewares/asyncHandler";
-import { requireAuth, requireRole } from "../../middlewares/auth.middleware";
+import { requireAuth, requireRole, optionalAuth } from "../../middlewares/auth.middleware";
 import { uploadProductImages } from "../../middlewares/upload.middleware";
 import {
   getProducts,
@@ -13,15 +13,17 @@ import {
   deleteProductImageEndpoint,
   getCategories,
   postCategory,
+  reactivateProductHandler,
 } from "./product.controller";
 
 const router = Router();
 
 // Públicas
-router.get("/", asyncHandler(getProducts));
+
 router.get("/categories", asyncHandler(getCategories));
 router.get("/:id", asyncHandler(getProduct));
 router.get("/:id/images/:imageId", asyncHandler(getProductImageBinary));
+router.get("/", optionalAuth, asyncHandler(getProducts));
 
 // Solo ADMIN
 router.post("/", requireAuth, requireRole("ADMIN"), asyncHandler(postProduct));
@@ -36,5 +38,6 @@ router.post(
 );
 router.delete("/:id/images/:imageId", requireAuth, requireRole("ADMIN"), asyncHandler(deleteProductImageEndpoint));
 router.post("/categories", requireAuth, requireRole("ADMIN"), asyncHandler(postCategory));
+router.post("/:id/reactivate", requireAuth, requireRole("ADMIN"), asyncHandler(reactivateProductHandler));
 
 export default router;

@@ -48,3 +48,25 @@ export function requireRole(...allowedRoles: string[]) {
     next();
   };
 }
+
+export async function optionalAuth(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith("Bearer ")) {
+    return next();
+  }
+
+  const token = header.slice("Bearer ".length);
+
+  try {
+    const payload = verifyAccessToken(token);
+    req.user = payload;
+  } catch {
+    // Token inválido o expirado: continuar como visitante anónimo, sin lanzar error
+  }
+
+  next();
+}

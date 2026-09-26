@@ -5,7 +5,7 @@ import { CreateProductInput, UpdateProductInput, ListProductsQuery } from "./pro
 
 export async function listProducts(query: ListProductsQuery) {
   const where: Prisma.ProductWhereInput = {
-    isActive: true,
+  ...(!query.includeInactive && { isActive: true }),
     ...(query.search && {
       name: { contains: query.search },
     }),
@@ -56,6 +56,7 @@ export async function listProducts(query: ListProductsQuery) {
       categories: p.categories.map((pc) => pc.category.name),
       imageIds: p.images.map((img) => img.id),
       timesPurchased: p._count.orderItems,
+      isActive: p.isActive 
     })),
     total,
     page: query.page,
@@ -189,4 +190,12 @@ export async function deleteProductImage(productId: number, imageId: number) {
     throw new AppError(404, "IMAGE_NOT_FOUND", "Imagen no encontrada");
   }
   await prisma.productImage.delete({ where: { id: imageId } });
+}
+
+export async function reactivateProduct(id: number) {
+  const existing = await prisma.product.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError(404, "PRODUCT_NOT_FOUND", "Producto no encontrado");
+  }
+  await prisma.product.update({ where: { id }, data: { isActive: true } });
 }
