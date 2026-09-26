@@ -163,13 +163,13 @@ export async function addProductImages(productId: number, files: Express.Multer.
     throw new AppError(404, "PRODUCT_NOT_FOUND", "Producto no encontrado");
   }
 
-  await prisma.productImage.createMany({
-    data: files.map((file) => ({
-      productId,
-      data: file.buffer,
-      mimeType: file.mimetype,
-    })),
-  });
+  const data: Prisma.ProductImageCreateManyInput[] = files.map((file) => ({
+    productId,
+    data: file.buffer,
+    mimeType: file.mimetype,
+  })) as Prisma.ProductImageCreateManyInput[];
+
+  await prisma.productImage.createMany({ data });
 }
 
 export async function getProductImage(productId: number, imageId: number) {

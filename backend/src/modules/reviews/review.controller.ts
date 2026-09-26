@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Response, Request } from "express";
 import { createReviewSchema, listReviewsQuerySchema } from "./review.schema";
 import { createReview, listReviewsForProduct, hideReview, deleteReview, listAllReviewsForAdmin, unhideReview } from "./review.service";
 import { ok } from "../../lib/apiResponse";
