@@ -2,10 +2,15 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../lib/AppError";
 import { CreateProductInput, UpdateProductInput, ListProductsQuery } from "./product.schema";
+import { getCached, setCached, invalidateCacheByPrefix } from "../../lib/cache";
 
 export async function listProducts(query: ListProductsQuery) {
+  const cacheKey = `products:list:${JSON.stringify(query)}`;
+  const cached = await getCached<ReturnType<typeof buildProductListResult>>(cacheKey);
+  if (cached) return cached;
+
   const where: Prisma.ProductWhereInput = {
-  ...(!query.includeInactive && { isActive: true }),
+    ...(!query.includeInactive && { isActive: true }),
     ...(query.search && {
       name: { contains: query.search },
     }),
@@ -14,11 +19,11 @@ export async function listProducts(query: ListProductsQuery) {
     }),
     ...(query.minPrice !== undefined || query.maxPrice !== undefined
       ? {
-        price: {
-          ...(query.minPrice !== undefined && { gte: query.minPrice }),
-          ...(query.maxPrice !== undefined && { lte: query.maxPrice }),
-        },
-      }
+          price: {
+            ...(query.minPrice !== undefined && { gte: query.minPrice }),
+            ...(query.maxPrice !== undefined && { lte: query.maxPrice }),
+          },
+        }
       : {}),
   };
 
@@ -26,10 +31,10 @@ export async function listProducts(query: ListProductsQuery) {
     query.sort === "popularity"
       ? { orderItems: { _count: "desc" } }
       : query.sort === "price_asc"
-        ? { price: "asc" }
-        : query.sort === "price_desc"
-          ? { price: "desc" }
-          : { createdAt: "desc" };
+      ? { price: "asc" }
+      : query.sort === "price_desc"
+      ? { price: "desc" }
+      : { createdAt: "desc" };
 
   const [items, total] = await Promise.all([
     prisma.product.findMany({
@@ -38,7 +43,7 @@ export async function listProducts(query: ListProductsQuery) {
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
       include: {
-        images: { select: { id: true } }, // solo IDs, no el binario
+        images: { select: { id: true } },
         categories: { include: { category: true } },
         _count: { select: { orderItems: true } },
       },
@@ -46,23 +51,26 @@ export async function listProducts(query: ListProductsQuery) {
     prisma.product.count({ where }),
   ]);
 
-  return {
+  const result = {
     items: items.map((p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
       price: p.price,
       stock: p.stock,
+      isActive: p.isActive,
       categories: p.categories.map((pc) => pc.category.name),
       imageIds: p.images.map((img) => img.id),
       timesPurchased: p._count.orderItems,
-      isActive: p.isActive 
     })),
     total,
     page: query.page,
     pageSize: query.pageSize,
     totalPages: Math.ceil(total / query.pageSize),
   };
+
+  await setCached(cacheKey, result, 60);
+  return result;
 }
 
 export async function getProductById(id: number) {
@@ -102,7 +110,7 @@ export async function createProduct(input: CreateProductInput) {
     throw new AppError(400, "INVALID_CATEGORY", "Una o más categorías no existen");
   }
 
-  return prisma.product.create({
+  const product = await prisma.product.create({
     data: {
       name: input.name,
       description: input.description,
@@ -114,6 +122,8 @@ export async function createProduct(input: CreateProductInput) {
       },
     },
   });
+  await invalidateCacheByPrefix("products:list:");
+  return product;
 }
 
 export async function updateProduct(id: number, input: UpdateProductInput) {
@@ -131,7 +141,7 @@ export async function updateProduct(id: number, input: UpdateProductInput) {
     }
   }
 
-  return prisma.product.update({
+  const product = await prisma.product.update({
     where: { id },
     data: {
       ...(input.name && { name: input.name }),
@@ -147,6 +157,8 @@ export async function updateProduct(id: number, input: UpdateProductInput) {
       }),
     },
   });
+  await invalidateCacheByPrefix("products:list:");
+  return product;
 }
 
 export async function softDeleteProduct(id: number) {
@@ -154,7 +166,9 @@ export async function softDeleteProduct(id: number) {
   if (!existing) {
     throw new AppError(404, "PRODUCT_NOT_FOUND", "Producto no encontrado");
   }
-  await prisma.product.update({ where: { id }, data: { isActive: false } });
+  const product = await prisma.product.update({ where: { id }, data: { isActive: false } });
+  await invalidateCacheByPrefix("products:list:");
+  return product;
 }
 
 export async function addProductImages(productId: number, files: Express.Multer.File[]) {
@@ -198,4 +212,5 @@ export async function reactivateProduct(id: number) {
     throw new AppError(404, "PRODUCT_NOT_FOUND", "Producto no encontrado");
   }
   await prisma.product.update({ where: { id }, data: { isActive: true } });
+  await invalidateCacheByPrefix("products:list:");
 }
