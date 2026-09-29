@@ -21,6 +21,12 @@ jobs:
         run: |
           cd ~/e-commerce/backend
           pm2 reload api-backend --update-env
+      - name: Actualizar frontend en server-api
+        run: |
+          cd ~/e-commerce/frontend
+          git pull origin main
+          npm ci
+          npm run build
 
       - name: Actualizar codigo en server-api2
         run: |
