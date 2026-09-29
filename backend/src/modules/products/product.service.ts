@@ -6,7 +6,7 @@ import { getCached, setCached, invalidateCacheByPrefix } from "../../lib/cache";
 
 export async function listProducts(query: ListProductsQuery) {
   const cacheKey = `products:list:${JSON.stringify(query)}`;
-  const cached = await getCached<ReturnType<typeof buildProductListResult>>(cacheKey);
+  const cached = await getCached<any>(cacheKey);
   if (cached) return cached;
 
   const where: Prisma.ProductWhereInput = {
