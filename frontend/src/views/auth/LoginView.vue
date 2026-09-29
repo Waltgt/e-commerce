@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import BaseInput from "../../components/base/BaseInput.vue";
 import BaseButton from "../../components/base/BaseButton.vue";
+import { useGoogleSignIn } from "../../composables/useGoogleSignIn";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -25,6 +26,18 @@ async function handleSubmit() {
     isLoading.value = false;
   }
 }
+
+async function handleGoogleCredential(idToken: string) {
+  errorMessage.value = "";
+  try {
+    await authStore.loginWithGoogle(idToken);
+    router.push("/");
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.error?.message || "No se pudo iniciar sesión con Google";
+  }
+}
+
+useGoogleSignIn("google-signin-button", handleGoogleCredential);
 </script>
 
 <template>
@@ -42,6 +55,8 @@ async function handleSubmit() {
       <router-link to="/register">Crear una cuenta</router-link>
     </p>
   </div>
+  <div class="auth-divider">o</div>
+  <div id="google-signin-button" class="google-signin-container"></div>
 </template>
 
 <style scoped>
@@ -60,5 +75,17 @@ async function handleSubmit() {
   margin-top: var(--space-4);
   font-size: 0.875rem;
   color: var(--steel);
+}
+
+.auth-divider {
+  text-align: center;
+  color: var(--steel);
+  font-size: 0.875rem;
+  margin: var(--space-3) 0;
+}
+
+.google-signin-container {
+  display: flex;
+  justify-content: center;
 }
 </style>
