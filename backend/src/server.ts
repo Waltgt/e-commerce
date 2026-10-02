@@ -10,6 +10,8 @@ import cartRoutes from "./modules/cart/cart.routes";
 import orderRoutes from "./modules/orders/order.routes";
 import userRoutes from "./modules/users/user.routes";
 import reviewRoutes, { adminReviewRouter } from "./modules/reviews/review.routes";
+import swaggerUi from "swagger-ui-express";
+import openapiSpec from "./docs/openapi.json";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +26,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", instance: INSTANCE_NAME });
 });
 
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
